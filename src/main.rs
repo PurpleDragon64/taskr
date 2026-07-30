@@ -1,88 +1,11 @@
-use clap::{Args, Parser, Subcommand, ValueEnum};
-
-#[derive(Parser)]
-#[command(about)]
-struct Cli {
-    #[command(subcommand)]
-    command: Option<Commands>
-}
-
-#[derive(Subcommand)]
-enum Commands {
-    /// Add task
-    Add {
-        /// Title of the task
-        #[arg(required = true)]
-        title: Vec<String>,
-
-        /// Task priority
-        #[arg(long, value_enum)]
-        priority: Option<Priority>
-    },
-    /// List tasks
-    List {
-        /// Which tasks to list
-        #[arg(value_enum, default_value_t = ListFilter::All)]
-        filter: ListFilter
-    },
-    /// Complete or uncomplete selected tasks
-    Done {
-        /// Indices of selected tasks
-        indices: Vec<u32>
-    },
-    /// Edit selected task
-    Edit {
-        /// Index of selected task
-        index: u32,
-
-        /// New title
-        title: Vec<String>,
-
-        /// New priority
-        #[arg(long, value_enum)]
-        priority: Option<Priority>
-    },
-    /// Remove selected task(s)
-    Remove(RemoveTarget)
-}
-
-// Remove Debug?
-#[derive(Clone, ValueEnum, Debug)]
-enum Priority {
-    Low,
-    Medium,
-    High
-}
-
-// Remove Debug?
-#[derive(Clone, ValueEnum, Debug)]
-enum ListFilter {
-    All,
-    Done,
-    Undone
-}
-
-#[derive(Args)]
-#[group(required = true, multiple = false)]
-struct RemoveTarget {
-    /// Indices of selected tasks
-    indices: Vec<u32>,
-
-    /// Remove all completed tasks
-    #[arg(long)]
-    done: bool,
-
-    /// Remove all tasks
-    #[arg(long)]
-    all: bool,
-}
+use taskr::parser::{self, Commands};
 
 fn main() {
-    let cli = Cli::parse();
+    let command = parser::parse();
 
     // only placeholder prints
     // todo: replace with real implementation
-    match cli.command {
+    match command {
         Some(Commands::Add {title, priority}) => {
             let prio_mess = if let Some(prio) = priority {
                 format!(" with priority {:?}", prio)
