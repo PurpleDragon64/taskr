@@ -1,6 +1,8 @@
 pub mod parser {
     use clap::{Args, Parser, Subcommand, ValueEnum};
 
+    // todo: move public types to separate module?
+
     #[derive(Parser)]
     #[command(about)]
     struct Cli {
@@ -104,35 +106,66 @@ pub mod task {
         fn edit() {}
     }
 }
-
+/// Module for visualizing tasks
+///
+/// Handles formatting and printing
 pub mod visualizer {
     use crate::task::Task;
 
     pub fn visualize(tasks: Vec<Task>) {}
 }
 
+/// Module for interacting with persistant storage.
+///
+/// Handles serialization, deserialization and writing to file and
+/// reading from file.
 pub mod storage {
     use std::io;
 
     use crate::task::Task;
 
+    // todo: Instead of Vec<Task> make the function generic.
+    //  allow it to take anything seriazible as argument.
+
+    /// Store a vector of tasks to persistant storage.
     pub fn store(tasks: Vec<Task>) -> Result<(), io::Error> {
         Ok(())
     }
 
+    /// Load tasks from persistant storage into a vector.
     pub fn load() -> Result<Vec<Task>, io::Error> {
         Ok(Vec::new())
     }
 }
 
+/// Module for main bussies logic
+///
+/// Performs the desired commands. Creates, manipulates and removes tasks.
+/// Uses storage module for persistance and visualizer module for generating
+/// output.
 pub mod tasker {
-    pub fn add_task() {}
+    use crate::parser::Commands;
 
-    pub fn list_tasks() {}
+    pub fn add_task() {
+        // create new task
+        // add task to list
+    }
 
-    pub fn toggle_tasks() {}
+    pub fn list_tasks() {
+        // filter tasks
+        // visualize tasks
+    }
 
-    pub fn edit_task() {}
+    pub fn toggle_tasks() { }
 
-    pub fn remove_tasks() {}
+    pub fn edit_task() { }
+
+    pub fn remove_tasks() { }
+
+    /// Process command
+    ///
+    /// Load tasks from storage
+    /// Based on command transform the tasks
+    /// Optionally store result to storage
+    pub fn process_command(command: Commands) {}
 }
