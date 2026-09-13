@@ -234,7 +234,7 @@ pub mod taskr {
     //   do not capture anything from their environment.
 
     // Print tasks selected from *tasks* by *filter* to stdout.
-    fn list_tasks(tasks: &Vec<Task>, filter: ListFilter) {
+    fn list_tasks(tasks: &[Task], filter: ListFilter) {
         let predicate: fn(&Task) -> bool = match filter {
             ListFilter::All => |_| true,
             ListFilter::Done => |t| t.is_completed(),
@@ -267,7 +267,7 @@ pub mod taskr {
     // }
 
     // Toggle the completed property of all tasks specified by *indices*.
-    fn toggle_tasks(tasks: &mut Vec<Task>, indices: Vec<usize>) -> Result<(), IndexOutOfRangeError> {
+    fn toggle_tasks(tasks: &mut [Task], indices: Vec<usize>) -> Result<(), IndexOutOfRangeError> {
         for index in indices {
             let Some(task) = tasks.get_mut(index) else {
                 return Err(IndexOutOfRangeError { index });
@@ -278,7 +278,7 @@ pub mod taskr {
     }
 
     // Change the title and/or priority of task selected by *index* to the given values.
-    fn edit_task(tasks: &mut Vec<Task>, index: usize, title: Option<String>, prio: Option<Priority>) -> Result<(), IndexOutOfRangeError> {
+    fn edit_task(tasks: &mut [Task], index: usize, title: Option<String>, prio: Option<Priority>) -> Result<(), IndexOutOfRangeError> {
         let Some(task) = tasks.get_mut(index) else {
             return Err(IndexOutOfRangeError { index });
         };
