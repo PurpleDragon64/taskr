@@ -59,7 +59,7 @@ pub enum Priority {
 pub enum ListFilter {
     All,
     Done,
-    Undone
+    Todo
 }
 
 #[derive(Args)]

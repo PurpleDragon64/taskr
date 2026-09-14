@@ -53,7 +53,7 @@ fn list_tasks(tasks: &[Task], filter: ListFilter) {
     let predicate: fn(&Task) -> bool = match filter {
         ListFilter::All => |_| true,
         ListFilter::Done => |t| t.is_completed(),
-        ListFilter::Undone => |t| !t.is_completed(),
+        ListFilter::Todo => |t| !t.is_completed(),
     };
     for (index, task) in tasks.iter().enumerate().filter(|(_, t)| predicate(t)) {
         println!("{index} {task}");
@@ -213,13 +213,13 @@ use super::*;
     }
 
     #[test]
-    fn test_list_undone_tasks() {
+    fn test_list_todo_tasks() {
         let t1 = Task::new("one".to_string(), true, Priority::Low);
         let t2 = Task::new("two".to_string(), false, Priority::Medium);
         let t3 = Task::new("three".to_string(), true, Priority::High);
         let tasks = vec![t1, t2, t3];
 
-        let filter = ListFilter::Undone;
+        let filter = ListFilter::Todo;
         list_tasks(&tasks, filter);
 
         // note: this test does not assert anything, one must check the output manually in the terminal
