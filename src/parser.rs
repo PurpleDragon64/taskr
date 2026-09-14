@@ -29,6 +29,7 @@ pub enum Command {
     /// Complete or uncomplete selected task(s)
     Done {
         /// Indices of selected tasks
+        #[arg(required = true)]
         indices: Vec<usize>
     },
     /// Edit selected task
