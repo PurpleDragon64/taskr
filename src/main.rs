@@ -1,7 +1,7 @@
-use taskr::{parser, process_command};
+use taskr::{parse, process_command};
 
 fn main() {
-    let command = parser::parse();
+    let command = parse();
     if let Err(e) = process_command(command) {
         println!("Error: {e}")
     }
