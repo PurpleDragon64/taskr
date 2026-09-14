@@ -11,7 +11,7 @@ use crate::parser::Priority;
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone)]
 pub struct Task {
     pub title: String,
-    completed: bool, // not pub, but exposed via accessors
+    completed: bool,
     pub priority: Priority,
 }
 
@@ -34,9 +34,9 @@ impl Display for Task {
         let done_str = if self.is_completed() {"[x]"} else {"[ ]"};
         let title_str = &self.title;
         let prio_str = match self.priority {
-            Priority::Low => "(!)", // todo low priority is empty string instead
-            Priority::Medium => "(!!)",
-            Priority::High => "(!!!)"
+            Priority::Low => "",
+            Priority::Medium => "(!)",
+            Priority::High => "(!!)"
         };
         write!(f, "{done_str} {title_str} {prio_str}")
     }
