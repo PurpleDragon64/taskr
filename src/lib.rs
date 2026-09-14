@@ -20,7 +20,7 @@ pub mod parser {
             title: Vec<String>,
 
             /// Task priority
-            #[arg(long, value_enum)]
+            #[arg(long, value_enum)]  // todo: add short version
             priority: Option<Priority>
         },
         /// List tasks
@@ -43,7 +43,7 @@ pub mod parser {
             title: Vec<String>,
 
             /// New priority
-            #[arg(long, value_enum)]
+            #[arg(long, value_enum)]  // todo: add short version
             priority: Option<Priority>
         },
         /// Remove selected task(s)
@@ -120,7 +120,7 @@ pub mod task {
             let done_str = if self.is_completed() {"[x]"} else {"[ ]"};
             let title_str = &self.title;
             let prio_str = match self.priority {
-                Priority::Low => "(!)",
+                Priority::Low => "(!)", // todo low priority is empty string instead
                 Priority::Medium => "(!!)",
                 Priority::High => "(!!!)"
             };
@@ -170,15 +170,16 @@ pub mod storage {
 /// Performs the desired commands. Creates, manipulates and removes tasks.
 /// Uses storage module for persistance.
 pub mod taskr {
-    use std::fmt;
+    use std::{fmt::{self, Display}, io};
     use crate::{
         parser::{Commands, ListFilter, Priority, RemoveTarget},
+        storage::{load, store},
         task::Task,
     };
 
     /// Custom error type for functions which take indices as parameters
     #[derive(Debug, Clone)]
-    struct IndexOutOfRangeError {
+    pub struct IndexOutOfRangeError {
         index: usize
     }
 
@@ -188,7 +189,20 @@ pub mod taskr {
         }
     }
 
-    // todo: change Vec types to slice types
+    pub enum TaskrError {
+        Storage(io::Error),
+        Index(IndexOutOfRangeError),
+    }
+
+    impl Display for TaskrError {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+            let mess = match self {
+                Self::Storage(e) => format!("Interacting with the storage failed.\n{e}"),
+                Self::Index(e) => e.to_string(),
+            };
+            write!(f, "{mess}")
+        }
+    }
 
     // Add a new uncompleted task with title *title* and priority *prio* to *tasks*.
     fn add_task(tasks: &mut Vec<Task>, title: String, prio: Priority) {
@@ -235,6 +249,9 @@ pub mod taskr {
 
     // Print tasks selected from *tasks* by *filter* to stdout.
     fn list_tasks(tasks: &[Task], filter: ListFilter) {
+        // todo add header?
+        // todo notify user when there are no tasks?
+
         let predicate: fn(&Task) -> bool = match filter {
             ListFilter::All => |_| true,
             ListFilter::Done => |t| t.is_completed(),
@@ -320,52 +337,37 @@ pub mod taskr {
     /// Load tasks from storage
     /// Based on command transform the tasks
     /// Optionally store result to storage
-    pub fn process_command(command: Option<Commands>) {
-
-        // load tasks
-        // handle errors from manipulating storage
-
-        // only placeholder prints
-        // todo: replace with real implementation
+    pub fn process_command(command: Option<Commands>) -> Result<(), TaskrError> {
+        let mut tasks = load().map_err(TaskrError::Storage)?;
         match command {
             Some(Commands::Add {title, priority}) => {
-                let prio_mess = if let Some(prio) = priority {
-                    format!(" with priority {:?}", prio)
-                } else {
-                    "".to_string()
-                };
-                println!("Adding: {}{}", title.join(" "), prio_mess)
+                let title = title.join(" ");
+                let priority = priority.unwrap_or(Priority::Low);
+                add_task(&mut tasks, title, priority);
             },
             Some(Commands::List {filter }) => {
-                println!("Listing {:?} tasks (list command)", filter)
+                list_tasks(&tasks, filter);
             },
             Some(Commands::Done { indices }) => {
-                println!("Completing {:?} ", indices)
+                toggle_tasks(&mut tasks, indices).map_err(TaskrError::Index)?
             },
             Some(Commands::Edit { index, title, priority }) => {
-                let title_mess = if !title.is_empty() {
-                    format!(" new title: {}", title.join(" "))
+                let title = if title.is_empty() {
+                    None
                 } else {
-                    "".to_string()
+                    Some(title.join(" "))
                 };
-                let prio_mess = if let Some(prio) = priority {
-                    format!(" new priority: {:?}", prio)
-                } else {
-                    "".to_string()
-                };
-                println!("Editing task {}:{}{}", index, title_mess, prio_mess)
+                edit_task(&mut tasks, index, title, priority).map_err(TaskrError::Index)?
             },
             Some(Commands::Remove(target)) => {
-                if target.all {
-                    println!("Removing all tasks");
-                } else if target.done {
-                    println!("Removing all completed tasks");
-                } else {
-                    println!("Removing tasks {:?}", target.indices);
-                }
+                remove_tasks(&mut tasks, &target).map_err(TaskrError::Index)?
             }
-            None => println!("Listing all tasks (no command)")
-        }
+            None => {
+                list_tasks(&tasks, ListFilter::All);
+            }
+        };
+        store(tasks).map_err(TaskrError::Storage)?;
+        Ok(())
     }
 
     #[cfg(test)]
