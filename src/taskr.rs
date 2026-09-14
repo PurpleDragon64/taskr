@@ -199,7 +199,7 @@ pub fn process_command(command: Option<Command>) -> Result<(), TaskrError> {
             list_tasks(&tasks, ListFilter::All);
         }
     };
-    store(tasks).map_err(TaskrError::Storage)?;
+    store(&tasks).map_err(TaskrError::Storage)?;
     Ok(())
 }
 

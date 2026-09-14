@@ -8,16 +8,12 @@ use std::io;
 
 use crate::task::Task;
 
+// todo: change FILE_NAME to make module more testable
 const FILE_NAME: &str = "storage";
 
-// todo: Instead of Vec<Task> make the function generic.
-//  allow it to take anything seriazible as argument.
-
-// todo: change FILE_NAME to make module more testable
-
-/// Store a vector of tasks to persistant storage.
+/// Store a tasks slice to persistant storage.
 /// The previous contents of the storage will be overwritten.
-pub fn store(tasks: Vec<Task>) -> Result<(), io::Error> {
+pub fn store(tasks: &[Task]) -> Result<(), io::Error> {
     let serialized = serde_json::to_vec(&tasks)?;
     fs::write(FILE_NAME, serialized)
 }
