@@ -4,4 +4,4 @@ mod taskr;
 mod storage;
 
 pub use taskr::process_command;
-pub use parser::{parse, Commands};
+pub use parser::{parse, Command};

@@ -1,17 +1,15 @@
 use clap::{Args, Parser, Subcommand, ValueEnum};
 use serde::{Serialize, Deserialize};
 
-// todo: move public types to separate module?
-
 #[derive(Parser)]
 #[command(about)]
 struct Cli {
     #[command(subcommand)]
-    command: Option<Commands>
+    command: Option<Command>
 }
 
 #[derive(Subcommand)]
-pub enum Commands {
+pub enum Command {
     /// Add task
     Add {
         /// Title of the task
@@ -19,7 +17,7 @@ pub enum Commands {
         title: Vec<String>,
 
         /// Task priority
-        #[arg(long, value_enum)]  // todo: add short version
+        #[arg(short, long, value_enum)]
         priority: Option<Priority>
     },
     /// List tasks
@@ -28,7 +26,7 @@ pub enum Commands {
         #[arg(value_enum, default_value_t = ListFilter::All)]
         filter: ListFilter
     },
-    /// Complete or uncomplete selected tasks
+    /// Complete or uncomplete selected task(s)
     Done {
         /// Indices of selected tasks
         indices: Vec<usize>
@@ -42,14 +40,13 @@ pub enum Commands {
         title: Vec<String>,
 
         /// New priority
-        #[arg(long, value_enum)]  // todo: add short version
+        #[arg(short, long, value_enum)]
         priority: Option<Priority>
     },
     /// Remove selected task(s)
     Remove(RemoveTarget)
 }
 
-// Remove Debug?
 #[derive(Clone, Copy, ValueEnum, Serialize, Deserialize, Debug, PartialEq, Eq)]
 pub enum Priority {
     Low,
@@ -57,8 +54,7 @@ pub enum Priority {
     High
 }
 
-// Remove Debug?
-#[derive(Clone, ValueEnum, Debug)]
+#[derive(Clone, ValueEnum)]
 pub enum ListFilter {
     All,
     Done,
@@ -82,7 +78,7 @@ pub struct RemoveTarget {
 
 /// Parse the command line arguments and return
 /// the selected command (if any).
-pub fn parse() -> Option<Commands> {
+pub fn parse() -> Option<Command> {
     let cli = Cli::parse();
     cli.command
 }

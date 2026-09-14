@@ -5,7 +5,7 @@
 
 use std::{fmt::{self, Display}, io};
 use crate::{
-    parser::{Commands, ListFilter, Priority, RemoveTarget},
+    parser::{Command, ListFilter, Priority, RemoveTarget},
     storage::{load, store},
     task::Task,
 };
@@ -170,21 +170,21 @@ fn remove_tasks(tasks: &mut Vec<Task>, target: &RemoveTarget) -> Result<(), Inde
 /// Load tasks from storage
 /// Based on command transform the tasks
 /// Optionally store result to storage
-pub fn process_command(command: Option<Commands>) -> Result<(), TaskrError> {
+pub fn process_command(command: Option<Command>) -> Result<(), TaskrError> {
     let mut tasks = load().map_err(TaskrError::Storage)?;
     match command {
-        Some(Commands::Add {title, priority}) => {
+        Some(Command::Add {title, priority}) => {
             let title = title.join(" ");
             let priority = priority.unwrap_or(Priority::Low);
             add_task(&mut tasks, title, priority);
         },
-        Some(Commands::List {filter }) => {
+        Some(Command::List {filter }) => {
             list_tasks(&tasks, filter);
         },
-        Some(Commands::Done { indices }) => {
+        Some(Command::Done { indices }) => {
             toggle_tasks(&mut tasks, indices).map_err(TaskrError::Index)?
         },
-        Some(Commands::Edit { index, title, priority }) => {
+        Some(Command::Edit { index, title, priority }) => {
             let title = if title.is_empty() {
                 None
             } else {
@@ -192,7 +192,7 @@ pub fn process_command(command: Option<Commands>) -> Result<(), TaskrError> {
             };
             edit_task(&mut tasks, index, title, priority).map_err(TaskrError::Index)?
         },
-        Some(Commands::Remove(target)) => {
+        Some(Command::Remove(target)) => {
             remove_tasks(&mut tasks, &target).map_err(TaskrError::Index)?
         }
         None => {
