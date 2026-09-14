@@ -3,14 +3,16 @@
 /// Performs the desired commands. Creates, manipulates and removes tasks.
 /// Uses storage module for persistance.
 
-use std::{fmt::{self, Display}, io};
+use std::fmt;
+use std::io;
+
 use crate::{
-    parser::{Command, ListFilter, Priority, RemoveTarget},
-    storage::{load, store},
+    parser::{Command, Priority, ListFilter, RemoveTarget},
+    storage,
     task::Task,
 };
 
-/// Custom error type for functions which take indices as parameters
+/// Custom error type for functions which take indices as parameters.
 #[derive(Debug, Clone)]
 pub struct IndexOutOfRangeError {
     index: usize
@@ -22,103 +24,45 @@ impl fmt::Display for IndexOutOfRangeError {
     }
 }
 
+/// Custom error type for the process_command function.
 pub enum TaskrError {
     Storage(io::Error),
     Index(IndexOutOfRangeError),
 }
 
-impl Display for TaskrError {
+impl fmt::Display for TaskrError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let mess = match self {
+        let message = match self {
             Self::Storage(e) => format!("Interacting with the storage failed.\n{e}"),
             Self::Index(e) => e.to_string(),
         };
-        write!(f, "{mess}")
+        write!(f, "{message}")
     }
 }
 
-// Add a new uncompleted task with title *title* and priority *prio* to *tasks*.
+/// Add a new uncompleted task with title *title* and priority *prio* to *tasks*.
 fn add_task(tasks: &mut Vec<Task>, title: String, prio: Priority) {
     let task = Task::new(title, false, prio);
     tasks.push(task);
 }
 
-// // alt 1
-// fn list_tasks(tasks: &Vec<Task>, filter: ListFilter) {
-
-//     for (index, task) in tasks.iter().enumerate() {
-//         if match filter {
-//             ListFilter::All => false,
-//             ListFilter::Done => !task.is_completed(),
-//             ListFilter::Undone => task.is_completed(),
-//         } {
-//             continue;
-//         }
-//         let idx_str = index.to_string();
-//         println!("{idx_str} {task}");
-//     }
-// }
-
-// alt 2
-// - match logic done on each task inside the single closure
-// fn list_tasks(tasks: &Vec<Task>, filter: ListFilter) {
-//     let matches = |task: &Task| match filter {
-//         ListFilter::All => true,
-//         ListFilter::Done => task.is_completed(),
-//         ListFilter::Undone => !task.is_completed(),
-//     };
-
-//     for (index, task) in tasks.iter().enumerate().filter(|(_,t)| matches(t)) {
-//         println!("{index} {task}");
-//     }
-// }
-
-// alt 3
-// - match logic done once to build a specific closure
-// - the type of each match arms must be the same. in rust, however,
-//   each closure has a unique anonymout type. These concrete closures, however,
-//   can be coerced into a function pointer type (fn(...) -> ...), because they
-//   do not capture anything from their environment.
-
-// Print tasks selected from *tasks* by *filter* to stdout.
+/// Print tasks selected from *tasks* by *filter* to stdout.
 fn list_tasks(tasks: &[Task], filter: ListFilter) {
-    // todo add header?
-    // todo notify user when there are no tasks?
+    println!("========== Tasks ==========");
 
     let predicate: fn(&Task) -> bool = match filter {
         ListFilter::All => |_| true,
         ListFilter::Done => |t| t.is_completed(),
         ListFilter::Undone => |t| !t.is_completed(),
     };
-
     for (index, task) in tasks.iter().enumerate().filter(|(_, t)| predicate(t)) {
         println!("{index} {task}");
     }
 }
 
-// alt 4
-// - using iterator chain and for_each method
-// fn list_tasks(tasks: &Vec<Task>, filter: ListFilter) {
-//     let predicate: fn(&Task) -> bool = match filter {
-//         ListFilter::All => |_| true,
-//         ListFilter::Done => |t| t.is_completed(),
-//         ListFilter::Undone => |t| !t.is_completed(),
-//     };
-
-//     tasks
-//         .iter()
-//         .enumerate()
-//         .filter(|(_, task)| match filter {
-//             ListFilter::All => true,
-//             ListFilter::Done => task.is_completed(),
-//             ListFilter::Undone => !task.is_completed()
-//         })
-//         .for_each(|(index, task)| println!("{index} {task}"))
-// }
-
-// Toggle the completed property of all tasks specified by *indices*.
-fn toggle_tasks(tasks: &mut [Task], indices: Vec<usize>) -> Result<(), IndexOutOfRangeError> {
-    for index in indices {
+/// Toggle the completed property of all tasks specified by *indices*.
+fn toggle_tasks(tasks: &mut [Task], indices: &[usize]) -> Result<(), IndexOutOfRangeError> {
+    for &index in indices {
         let Some(task) = tasks.get_mut(index) else {
             return Err(IndexOutOfRangeError { index });
         };
@@ -127,7 +71,7 @@ fn toggle_tasks(tasks: &mut [Task], indices: Vec<usize>) -> Result<(), IndexOutO
     Ok(())
 }
 
-// Change the title and/or priority of task selected by *index* to the given values.
+/// Change the title and/or priority of task selected by *index* to the given values.
 fn edit_task(tasks: &mut [Task], index: usize, title: Option<String>, prio: Option<Priority>) -> Result<(), IndexOutOfRangeError> {
     let Some(task) = tasks.get_mut(index) else {
         return Err(IndexOutOfRangeError { index });
@@ -141,7 +85,7 @@ fn edit_task(tasks: &mut [Task], index: usize, title: Option<String>, prio: Opti
     Ok(())
 }
 
-// Remove tasks specified by *target* from *tasks*.
+/// Remove tasks specified by *target* from *tasks*.
 fn remove_tasks(tasks: &mut Vec<Task>, target: &RemoveTarget) -> Result<(), IndexOutOfRangeError> {
     if target.all {
         tasks.clear();
@@ -167,11 +111,11 @@ fn remove_tasks(tasks: &mut Vec<Task>, target: &RemoveTarget) -> Result<(), Inde
 
 /// Process command
 ///
-/// Load tasks from storage
-/// Based on command transform the tasks
-/// Optionally store result to storage
+/// Load tasks from storage.
+/// Based on command transform the tasks.
+/// Store result to storage.
 pub fn process_command(command: Option<Command>) -> Result<(), TaskrError> {
-    let mut tasks = load().map_err(TaskrError::Storage)?;
+    let mut tasks: Vec<Task> = storage::load().map_err(TaskrError::Storage)?;
     match command {
         Some(Command::Add {title, priority}) => {
             let title = title.join(" ");
@@ -182,7 +126,7 @@ pub fn process_command(command: Option<Command>) -> Result<(), TaskrError> {
             list_tasks(&tasks, filter);
         },
         Some(Command::Done { indices }) => {
-            toggle_tasks(&mut tasks, indices).map_err(TaskrError::Index)?
+            toggle_tasks(&mut tasks, &indices).map_err(TaskrError::Index)?
         },
         Some(Command::Edit { index, title, priority }) => {
             let title = if title.is_empty() {
@@ -199,7 +143,7 @@ pub fn process_command(command: Option<Command>) -> Result<(), TaskrError> {
             list_tasks(&tasks, ListFilter::All);
         }
     };
-    store(&tasks).map_err(TaskrError::Storage)?;
+    storage::store(&tasks).map_err(TaskrError::Storage)?;
     Ok(())
 }
 
@@ -287,7 +231,7 @@ use super::*;
         let t = Task::new("title".to_string(), false, Priority::Medium);
         let mut tasks = vec![t];
 
-        let res = toggle_tasks(&mut tasks, vec![0]);
+        let res = toggle_tasks(&mut tasks, &vec![0]);
 
         assert!(res.is_ok());
         assert!(tasks[0].is_completed())
@@ -298,7 +242,7 @@ use super::*;
         let t = Task::new("title".to_string(), true, Priority::Medium);
         let mut tasks = vec![t];
 
-        let res = toggle_tasks(&mut tasks, vec![0]);
+        let res = toggle_tasks(&mut tasks, &vec![0]);
 
         assert!(res.is_ok());
         assert!(!tasks[0].is_completed())
@@ -311,7 +255,7 @@ use super::*;
         let t3 = Task::new("three".to_string(), false, Priority::High);
         let mut tasks = vec![t1, t2, t3];
 
-        let res = toggle_tasks(&mut tasks, vec![0, 2]);
+        let res = toggle_tasks(&mut tasks, &vec![0, 2]);
 
         assert!(res.is_ok());
         assert!(tasks[0].is_completed());
@@ -324,7 +268,7 @@ use super::*;
         let task = Task::new("title".to_string(), false, Priority::Medium);
         let mut tasks = vec![task];
 
-        let res = toggle_tasks(&mut tasks, vec![1]);
+        let res = toggle_tasks(&mut tasks, &vec![1]);
 
         assert!(res.is_err_and(|e| e.index == 1));
     }
